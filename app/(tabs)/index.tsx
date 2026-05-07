@@ -16,8 +16,9 @@ export default function HomeScreen() {
   const [enTurno, setEnTurno] = useState<boolean>(false);
   const [cargando, setCargando] = useState<boolean>(false);
   
-  // Obtenemos el correo del guardia logueado
-  const guardiaEmail = auth.currentUser?.email || "Usuario no identificado";
+  // Extraemos solo el nombre de usuario (antes del @)
+  const rawEmail = auth.currentUser?.email || "";
+  const guardiaNombre = rawEmail.split('@')[0] || "Invitado";
 
   useEffect(() => {
     // Protección de ruta: Si no hay usuario, esperar un momento y mandar al login
@@ -37,7 +38,7 @@ export default function HomeScreen() {
       await addDoc(collection(db, "asistencias"), {
         evento: nuevoEstado ? "ENTRADA" : "SALIDA",
         fechaServidor: serverTimestamp(),
-        guardia: guardiaEmail,
+        guardia: guardiaNombre,
         proyecto: "SBCR-UMAG"
       });
       setEnTurno(nuevoEstado);
@@ -64,8 +65,8 @@ export default function HomeScreen() {
       <ThemedText type="title" style={styles.title}>SBCR - Panel de Control</ThemedText>
       
       <ThemedView style={styles.infoCard}>
-        <ThemedText style={styles.infoLabel}>Guardia Activo:</ThemedText>
-        <ThemedText style={styles.infoText}>{guardiaEmail}</ThemedText>
+        <ThemedText style={styles.infoLabel}>Vigilante:</ThemedText>
+        <ThemedText style={styles.infoText}>{guardiaNombre.toUpperCase()}</ThemedText>
       </ThemedView>
 
       <View style={styles.card}>

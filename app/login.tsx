@@ -1,45 +1,70 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useRouter } from 'expo-router';
+import { FirebaseError } from 'firebase/app';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { auth } from '../firebaseConfig';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Generamos el correo interno para Firebase (ej: malexander@sbcr-app.com)
+  const internalEmail = `${username.trim().toLowerCase()}@sbcr-app.com`;
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Por favor, ingresa tu cuenta y contraseña.");
+    if (!username || !password) {
+      Alert.alert("Error", "Por favor, ingresa tu usuario y contraseña.");
       return;
     }
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, internalEmail, password);
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert("Error de Ingreso", "Credenciales incorrectas o usuario no encontrado.");
+    } catch (error) {
+      let errorMessage = "Ocurrió un error desconocido al iniciar sesión.";
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/invalid-email':
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            errorMessage = "Usuario o contraseña incorrectos.";
+            break;
+        }
+      }
+      Alert.alert("Error de Ingreso", errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!username || !password) {
       Alert.alert("Error", "Completa todos los campos para crear una cuenta.");
       return;
     }
     setLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      await createUserWithEmailAndPassword(auth, internalEmail, password);
       Alert.alert("Éxito", "Cuenta creada correctamente.");
       router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert("Error de Registro", "No se pudo crear la cuenta. Revisa los datos.");
+    } catch (error) {
+      let errorMessage = "Ocurrió un error desconocido al registrar la cuenta.";
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = "Este nombre de usuario ya está en uso.";
+            break;
+          case 'auth/weak-password':
+            errorMessage = "La contraseña debe tener al menos 6 caracteres.";
+            break;
+        }
+      }
+      Alert.alert("Error de Registro", errorMessage);
     } finally {
       setLoading(false);
     }
@@ -52,11 +77,10 @@ export default function LoginScreen() {
       
       <TextInput
         style={styles.input}
-        placeholder="Correo electrónico (Cuenta)"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Nombre de Usuario (ej: malexander)"
+        value={username}
+        onChangeText={setUsername}
         autoCapitalize="none"
-        keyboardType="email-address"
       />
       
       <TextInput
